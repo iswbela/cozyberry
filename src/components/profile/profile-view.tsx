@@ -1,0 +1,203 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTheme } from "@/providers/theme-provider";
+import { updateProfile, changePassword } from "@/actions/profile";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Sun, Moon, Eye, EyeOff } from "lucide-react";
+
+interface ProfileViewProps {
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+    theme: string;
+  };
+}
+
+export function ProfileView({ user }: ProfileViewProps) {
+  const router = useRouter();
+  const { theme, setTheme } = useTheme();
+
+  const [name, setName] = useState(user.name ?? "");
+  const [profileMsg, setProfileMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const initials = name
+    ? name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : user.email?.[0].toUpperCase() ?? "U";
+
+  const handleProfileSave = async () => {
+    setProfileLoading(true);
+    const result = await updateProfile({ name });
+    setProfileMsg(result.error
+      ? { text: result.error, ok: false }
+      : { text: "Profile updated!", ok: true }
+    );
+    setProfileLoading(false);
+    router.refresh();
+  };
+
+  const handlePasswordChange = async () => {
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ text: "Passwords do not match.", ok: false });
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordMsg({ text: "New password must be at least 8 characters.", ok: false });
+      return;
+    }
+    setPasswordLoading(true);
+    const result = await changePassword({ currentPassword, newPassword });
+    setPasswordMsg(result.error
+      ? { text: result.error, ok: false }
+      : { text: "Password changed successfully!", ok: true }
+    );
+    if (!result.error) {
+      setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+    }
+    setPasswordLoading(false);
+  };
+
+  return (
+    <div className="space-y-6 max-w-xl">
+      <h1 className="text-2xl font-bold">Profile</h1>
+
+      {/* Avatar */}
+      <div className="flex items-center gap-4">
+        <Avatar className="w-16 h-16 text-lg">
+          <AvatarImage src={user.image ?? undefined} />
+          <AvatarFallback>{initials}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="font-semibold text-lg">{user.name ?? "Anonymous"}</p>
+          <p className="text-sm text-[var(--muted-foreground)]">{user.email}</p>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Profile Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Account Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {profileMsg && (
+            <div className={`rounded-xl px-4 py-3 text-sm ${profileMsg.ok ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-600"}`}>
+              {profileMsg.text}
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label>Display Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input value={user.email ?? ""} disabled className="opacity-60" />
+          </div>
+          <Button onClick={handleProfileSave} disabled={profileLoading}>
+            {profileLoading ? "Saving..." : "Save Changes"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Theme */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Appearance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setTheme("light")}
+              className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                theme === "light" ? "border-[var(--accent)] bg-[var(--primary)]/10" : "border-[var(--border)] hover:border-[var(--accent)]/50"
+              }`}
+            >
+              <Sun className="w-5 h-5 text-orange-400" />
+              <span className="text-sm font-medium">Light</span>
+            </button>
+            <button
+              onClick={() => setTheme("dark")}
+              className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                theme === "dark" ? "border-[var(--accent)] bg-[var(--primary)]/10" : "border-[var(--border)] hover:border-[var(--accent)]/50"
+              }`}
+            >
+              <Moon className="w-5 h-5 text-[var(--accent)]" />
+              <span className="text-sm font-medium">Dark</span>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Password */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Change Password</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {passwordMsg && (
+            <div className={`rounded-xl px-4 py-3 text-sm ${passwordMsg.ok ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-600"}`}>
+              {passwordMsg.text}
+            </div>
+          )}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Current Password</Label>
+              <button
+                type="button"
+                onClick={() => setShowPasswords(!showPasswords)}
+                className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] flex items-center gap-1"
+              >
+                {showPasswords ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                {showPasswords ? "Hide" : "Show"}
+              </button>
+            </div>
+            <Input
+              type={showPasswords ? "text" : "password"}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Current password"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>New Password</Label>
+            <Input
+              type={showPasswords ? "text" : "password"}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Min. 8 characters"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Confirm New Password</Label>
+            <Input
+              type={showPasswords ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Repeat new password"
+            />
+          </div>
+          <Button onClick={handlePasswordChange} disabled={passwordLoading || !currentPassword || !newPassword}>
+            {passwordLoading ? "Changing..." : "Change Password"}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
