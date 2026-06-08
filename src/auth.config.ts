@@ -4,6 +4,16 @@ import type { NextAuthConfig } from "next-auth";
 // Used by middleware. The full config (with Prisma adapter) lives in src/lib/auth.ts.
 export const authConfig = {
   secret: process.env.AUTH_SECRET,
+  cookies: {
+    sessionToken: {
+      options: {
+        maxAge: 365 * 24 * 60 * 60, // 365 days
+        httpOnly: true,
+        sameSite: "lax" as const,
+        path: "/",
+      },
+    },
+  },
   pages: {
     signIn: "/login",
     error: "/login",

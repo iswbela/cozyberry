@@ -7,62 +7,44 @@ import { z } from "zod";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { registerUser } from "@/actions/auth";
 import Image from "next/image";
+import { registerUser } from "@/actions/auth";
+import { useLang } from "@/providers/language-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, BookHeart } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 const schema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().min(8),
   confirmPassword: z.string(),
-}).refine((d) => d.password === d.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
+}).refine((d) => d.password === d.confirmPassword, { message: "no-match", path: ["confirmPassword"] });
 
 type FormData = z.infer<typeof schema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t, lang, setLang } = useLang();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  });
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await registerUser({
-        name: data.name,
-        email: data.email,
-        password: data.password,
-      });
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
-      // Auto sign in after register
-      await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-      });
+      const result = await registerUser({ name: data.name, email: data.email, password: data.password });
+      if (result.error) { setError(result.error); return; }
+      await signIn("credentials", { email: data.email, password: data.password, redirect: false });
       router.push("/dashboard");
       router.refresh();
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError(t.auth.somethingWrong); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -72,74 +54,53 @@ export default function RegisterPage() {
           <div className="flex justify-center mb-4">
             <Image src="/images/cozyberry-2.png" alt="CozyBerry" width={64} height={64} className="w-16 h-16" />
           </div>
-          <p className="text-[var(--muted-foreground)] mt-1">Start your journaling journey</p>
+          <p className="text-[var(--muted-foreground)] mt-1">{t.auth.registerSubtitle}</p>
+          <div className="flex justify-center gap-2 mt-3">
+            <button onClick={() => setLang("pt")} className={`text-xs font-semibold px-2 py-1 rounded-lg transition-colors ${lang === "pt" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]"}`}>PT</button>
+            <span className="text-[var(--muted-foreground)] text-xs self-center">/</span>
+            <button onClick={() => setLang("en")} className={`text-xs font-semibold px-2 py-1 rounded-lg transition-colors ${lang === "en" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]"}`}>EN</button>
+          </div>
         </div>
 
         <Card className="border shadow-lg">
           <CardHeader className="pb-4">
-            <CardTitle className="text-center text-xl">Create your account</CardTitle>
+            <CardTitle className="text-center text-xl">{t.auth.createYourAccount}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {error && (
-                <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
-                  {error}
-                </div>
-              )}
-
+              {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">{error}</div>}
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" placeholder="Your name" {...register("name")} />
-                {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+                <Label htmlFor="name">{t.auth.name}</Label>
+                <Input id="name" placeholder={t.auth.namePlaceholder} {...register("name")} />
+                {errors.name && <p className="text-xs text-red-500">{t.auth.nameMin}</p>}
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
-                {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+                <Label htmlFor="email">{t.auth.email}</Label>
+                <Input id="email" type="email" placeholder={t.auth.emailPlaceholder} {...register("email")} />
+                {errors.email && <p className="text-xs text-red-500">{t.auth.emailInvalid}</p>}
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t.auth.password}</Label>
                 <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Min. 8 characters"
-                    {...register("password")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-                  >
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder={t.auth.passwordMinPlaceholder} {...register("password")} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+                {errors.password && <p className="text-xs text-red-500">{t.auth.passwordMin}</p>}
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Repeat your password"
-                  {...register("confirmPassword")}
-                />
-                {errors.confirmPassword && <p className="text-xs text-red-500">{errors.confirmPassword.message}</p>}
+                <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
+                <Input id="confirmPassword" type="password" placeholder={t.auth.confirmPasswordPlaceholder} {...register("confirmPassword")} />
+                {errors.confirmPassword && <p className="text-xs text-red-500">{t.auth.passwordNoMatch}</p>}
               </div>
-
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creating account..." : "Create Account"}
+                {loading ? t.auth.creatingAccount : t.auth.createAccount}
               </Button>
             </form>
-
             <p className="text-center text-sm text-[var(--muted-foreground)] mt-6">
-              Already have an account?{" "}
-              <Link href="/login" className="text-[var(--accent)] hover:underline font-medium">
-                Sign in
-              </Link>
+              {t.auth.alreadyHaveAccount}{" "}
+              <Link href="/login" className="text-[var(--accent)] hover:underline font-medium">{t.auth.signInLink}</Link>
             </p>
           </CardContent>
         </Card>

@@ -3,27 +3,21 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  isSameMonth,
-  isSameDay,
-  addMonths,
-  subMonths,
-  startOfWeek,
-  endOfWeek,
+  format, startOfMonth, endOfMonth, eachDayOfInterval,
+  isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek,
 } from "date-fns";
+import { ptBR, enUS } from "date-fns/locale";
 import { getMood } from "@/lib/utils";
+import { useLang } from "@/providers/language-provider";
 import type { JournalEntryWithTags } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const DAY_HEADERS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 export function CalendarView({ entries }: { entries: JournalEntryWithTags[] }) {
+  const { t, lang } = useLang();
+  const locale = lang === "pt" ? ptBR : enUS;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
@@ -40,14 +34,14 @@ export function CalendarView({ entries }: { entries: JournalEntryWithTags[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Calendar</h1>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="text-2xl font-bold">{t.calendar.title}</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="text-lg font-semibold min-w-[160px] text-center">
-            {format(currentDate, "MMMM yyyy")}
+          <span className="text-lg font-semibold min-w-[140px] text-center capitalize">
+            {format(currentDate, "MMMM yyyy", { locale })}
           </span>
           <Button variant="outline" size="icon" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
             <ChevronRight className="w-4 h-4" />
@@ -60,7 +54,7 @@ export function CalendarView({ entries }: { entries: JournalEntryWithTags[] }) {
         <Card>
           <CardContent className="p-4">
             <div className="grid grid-cols-7 mb-2">
-              {DAY_HEADERS.map((d) => (
+              {t.calendar.days.map((d) => (
                 <div key={d} className="text-center text-xs font-medium text-[var(--muted-foreground)] py-2">
                   {d}
                 </div>
@@ -102,15 +96,15 @@ export function CalendarView({ entries }: { entries: JournalEntryWithTags[] }) {
         <div className="space-y-3">
           {selectedDay ? (
             <>
-              <h2 className="font-semibold text-[var(--foreground)]">
-                {format(selectedDay, "EEEE, MMMM d")}
+              <h2 className="font-semibold text-[var(--foreground)] capitalize">
+                {format(selectedDay, "EEEE, MMMM d", { locale })}
               </h2>
               {selectedEntries.length === 0 ? (
                 <Card className="border-dashed">
                   <CardContent className="py-8 text-center">
-                    <p className="text-[var(--muted-foreground)] text-sm">No entries this day.</p>
+                    <p className="text-[var(--muted-foreground)] text-sm">{t.calendar.noEntries}</p>
                     <Button asChild size="sm" className="mt-3">
-                      <Link href="/journal/new">Write one</Link>
+                      <Link href="/journal/new">{t.calendar.writeOne}</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -147,7 +141,7 @@ export function CalendarView({ entries }: { entries: JournalEntryWithTags[] }) {
           ) : (
             <Card className="border-dashed">
               <CardContent className="py-12 text-center">
-                <p className="text-[var(--muted-foreground)] text-sm">Click a day to see entries.</p>
+                <p className="text-[var(--muted-foreground)] text-sm">{t.calendar.selectDay}</p>
               </CardContent>
             </Card>
           )}

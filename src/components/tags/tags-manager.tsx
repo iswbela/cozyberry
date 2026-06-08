@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createTag, updateTag, deleteTag } from "@/actions/tags";
+import { useLang } from "@/providers/language-provider";
 import type { Tag } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ const PRESET_COLORS = [
 
 export function TagsManager({ initialTags }: { initialTags: Tag[] }) {
   const router = useRouter();
+  const { t } = useLang();
   const [tags, setTags] = useState(initialTags);
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState("#F8C8DC");
@@ -31,32 +33,22 @@ export function TagsManager({ initialTags }: { initialTags: Tag[] }) {
     setLoading(true);
     const result = await createTag(newName.trim(), newColor);
     if (result.error) { setError(result.error); }
-    else {
-      setTags((prev) => [...prev, result.tag!]);
-      setNewName("");
-    }
+    else { setTags((prev) => [...prev, result.tag!]); setNewName(""); }
     setLoading(false);
   };
 
-  const startEdit = (tag: Tag) => {
-    setEditingId(tag.id);
-    setEditName(tag.name);
-    setEditColor(tag.color);
-  };
+  const startEdit = (tag: Tag) => { setEditingId(tag.id); setEditName(tag.name); setEditColor(tag.color); };
 
   const handleUpdate = async (id: string) => {
     setLoading(true);
     const result = await updateTag(id, editName.trim(), editColor);
-    if (result.success) {
-      setTags((prev) => prev.map((t) => (t.id === id ? result.tag! : t)));
-      setEditingId(null);
-    }
+    if (result.success) { setTags((prev) => prev.map((t) => (t.id === id ? result.tag! : t))); setEditingId(null); }
     setLoading(false);
     router.refresh();
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this tag?")) return;
+    if (!confirm(t.tags.confirmDelete)) return;
     await deleteTag(id);
     setTags((prev) => prev.filter((t) => t.id !== id));
     router.refresh();
@@ -64,41 +56,30 @@ export function TagsManager({ initialTags }: { initialTags: Tag[] }) {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <h1 className="text-2xl font-bold">Tags</h1>
+      <h1 className="text-2xl font-bold">{t.tags.title}</h1>
 
-      {/* Create Tag */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Create New Tag</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle className="text-base">{t.tags.createNew}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          {error && (
-            <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">{error}</div>
-          )}
+          {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">{error}</div>}
           <div className="flex gap-3 items-end">
             <div className="flex-1 space-y-2">
-              <Label>Tag Name</Label>
+              <Label>{t.tags.tagName}</Label>
               <Input
-                placeholder="e.g. Gratitude, Travel, Work..."
+                placeholder={t.tags.tagNamePlaceholder}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               />
             </div>
             <div className="space-y-2">
-              <Label>Color</Label>
-              <input
-                type="color"
-                value={newColor}
-                onChange={(e) => setNewColor(e.target.value)}
-                className="h-10 w-16 rounded-xl border border-[var(--border)] cursor-pointer"
-              />
+              <Label>{t.tags.color}</Label>
+              <input type="color" value={newColor} onChange={(e) => setNewColor(e.target.value)} className="h-10 w-16 rounded-xl border border-[var(--border)] cursor-pointer" />
             </div>
             <Button onClick={handleCreate} disabled={loading || !newName.trim()}>
-              <Plus className="w-4 h-4" /> Add
+              <Plus className="w-4 h-4" /> {t.tags.add}
             </Button>
           </div>
-          {/* Preset Colors */}
           <div className="flex gap-2 flex-wrap">
             {PRESET_COLORS.map((c) => (
               <button
@@ -112,12 +93,11 @@ export function TagsManager({ initialTags }: { initialTags: Tag[] }) {
         </CardContent>
       </Card>
 
-      {/* Tags List */}
       {tags.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
             <TagIcon className="w-10 h-10 text-[var(--muted-foreground)] mx-auto mb-3 opacity-40" />
-            <p className="text-[var(--muted-foreground)]">No tags yet. Create one above!</p>
+            <p className="text-[var(--muted-foreground)]">{t.tags.noTags}</p>
           </CardContent>
         </Card>
       ) : (
@@ -127,46 +107,20 @@ export function TagsManager({ initialTags }: { initialTags: Tag[] }) {
               <CardContent className="py-3 px-4">
                 {editingId === tag.id ? (
                   <div className="flex gap-3 items-center">
-                    <input
-                      type="color"
-                      value={editColor}
-                      onChange={(e) => setEditColor(e.target.value)}
-                      className="h-8 w-12 rounded-lg border border-[var(--border)] cursor-pointer"
-                    />
-                    <Input
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="flex-1"
-                      onKeyDown={(e) => e.key === "Enter" && handleUpdate(tag.id)}
-                    />
-                    <Button size="sm" onClick={() => handleUpdate(tag.id)} disabled={loading}>
-                      Save
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                      Cancel
-                    </Button>
+                    <input type="color" value={editColor} onChange={(e) => setEditColor(e.target.value)} className="h-8 w-12 rounded-lg border border-[var(--border)] cursor-pointer" />
+                    <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="flex-1" onKeyDown={(e) => e.key === "Enter" && handleUpdate(tag.id)} />
+                    <Button size="sm" onClick={() => handleUpdate(tag.id)} disabled={loading}>{t.tags.save}</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>{t.tags.cancel}</Button>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded-full shrink-0"
-                        style={{ backgroundColor: tag.color }}
-                      />
-                      <span
-                        className="px-3 py-1 rounded-full text-sm font-medium"
-                        style={{ backgroundColor: tag.color + "33", color: tag.color }}
-                      >
-                        {tag.name}
-                      </span>
+                      <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                      <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: tag.color + "33", color: tag.color }}>{tag.name}</span>
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => startEdit(tag)} className="h-8 w-8">
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(tag.id)} className="h-8 w-8 hover:text-red-500">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => startEdit(tag)} className="h-8 w-8"><Edit2 className="w-3.5 h-3.5" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(tag.id)} className="h-8 w-8 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></Button>
                     </div>
                   </div>
                 )}
