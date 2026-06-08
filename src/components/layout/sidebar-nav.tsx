@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useTheme } from "@/providers/theme-provider";
@@ -18,7 +19,7 @@ import {
   LogOut,
   Sun,
   Moon,
-  BookHeart,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,9 +37,11 @@ const navItems = [
 
 interface SidebarNavProps {
   user: { name?: string | null; email?: string | null; image?: string | null };
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export function SidebarNav({ user }: SidebarNavProps) {
+export function SidebarNav({ user, isOpen = false, onClose }: SidebarNavProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
 
@@ -46,15 +49,45 @@ export function SidebarNav({ user }: SidebarNavProps) {
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : user.email?.[0].toUpperCase() ?? "U";
 
+  const handleNavClick = () => {
+    onClose?.();
+  };
+
   return (
-    <aside className="w-64 flex flex-col h-full bg-[var(--sidebar)] border-r border-[var(--border)] shrink-0">
+    <aside
+      className={cn(
+        // Mobile: fixed drawer sliding from left
+        "fixed inset-y-0 left-0 z-30 w-64 flex flex-col h-full bg-[var(--sidebar)] border-r border-[var(--border)] shrink-0 transition-transform duration-200",
+        // Show/hide on mobile
+        isOpen ? "translate-x-0" : "-translate-x-full",
+        // Desktop: always visible, relative positioning
+        "md:relative md:translate-x-0"
+      )}
+    >
       {/* Logo */}
-      <Link href="/dashboard" className="flex items-center gap-3 px-6 py-5 border-b border-[var(--border)] hover:opacity-80 transition-opacity">
-        <div className="flex items-center justify-center w-9 h-9 rounded-full bg-[var(--primary)]">
-          <BookHeart className="w-5 h-5 text-[var(--primary-foreground)]" />
-        </div>
-        <span className="text-lg font-bold text-[var(--foreground)]">CozyBerry</span>
-      </Link>
+      <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border)]">
+        <Link
+          href="/dashboard"
+          onClick={handleNavClick}
+          className="hover:opacity-80 transition-opacity"
+        >
+          <Image
+            src="/images/cozyberry.png"
+            alt="CozyBerry"
+            width={140}
+            height={40}
+            className="h-8 w-auto"
+          />
+        </Link>
+        {/* Close button — mobile only */}
+        <button
+          onClick={onClose}
+          className="md:hidden p-1.5 rounded-lg hover:bg-[var(--muted)] transition-colors text-[var(--muted-foreground)]"
+          aria-label="Close menu"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -64,6 +97,7 @@ export function SidebarNav({ user }: SidebarNavProps) {
             <Link
               key={href}
               href={href}
+              onClick={handleNavClick}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
                 isActive

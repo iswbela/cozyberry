@@ -3,6 +3,7 @@ import type { NextAuthConfig } from "next-auth";
 // Edge-compatible auth config — no Prisma, no Node-only modules.
 // Used by middleware. The full config (with Prisma adapter) lives in src/lib/auth.ts.
 export const authConfig = {
+  secret: process.env.AUTH_SECRET,
   pages: {
     signIn: "/login",
     error: "/login",

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { BookHeart, Calendar, BarChart2, Mail, Tag, Clock } from "lucide-react";
 
@@ -16,11 +17,8 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[var(--background)]">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-[var(--primary)] flex items-center justify-center">
-            <BookHeart className="w-5 h-5 text-[var(--primary-foreground)]" />
-          </div>
-          <span className="text-xl font-bold text-[var(--foreground)]">CozyBerry</span>
+        <div className="flex items-center">
+          <Image src="/images/cozyberry.png" alt="CozyBerry" width={140} height={40} className="h-9 w-auto" />
         </div>
         <div className="flex items-center gap-3">
           <Button asChild variant="ghost">
@@ -37,7 +35,7 @@ export default function LandingPage() {
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--primary)]/30 text-sm text-[var(--accent)] font-medium mb-6">
           🌸 Your cozy journaling space
         </div>
-        <h1 className="text-5xl md:text-6xl font-bold text-[var(--foreground)] mb-6 leading-tight">
+        <h1 className="text-4xl md:text-6xl font-bold text-[var(--foreground)] mb-6 leading-tight">
           A journal that feels like<br />
           <span className="text-[var(--accent)]">coming home</span>
         </h1>
@@ -93,9 +91,8 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="text-center py-8 text-sm text-[var(--muted-foreground)] border-t border-[var(--border)]">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <BookHeart className="w-4 h-4 text-[var(--accent)]" />
-          <span>CozyBerry</span>
+        <div className="flex items-center justify-center mb-2">
+          <Image src="/images/cozyberry-2.png" alt="CozyBerry" width={32} height={32} className="w-8 h-8" />
         </div>
         <p>Your personal journaling space.</p>
       </footer>

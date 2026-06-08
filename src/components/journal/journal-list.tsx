@@ -234,7 +234,7 @@ export function JournalList({ initialEntries, tags }: JournalListProps) {
                 {/* Colored top strip */}
                 <div className="h-2 bg-gradient-to-r from-[var(--primary)] to-[var(--accent)]" />
 
-                <div className="p-8 md:p-12">
+                <div className="p-5 md:p-12">
                   {/* Mood */}
                   {currentEntry!.mood &&
                     (() => {
@@ -255,7 +255,7 @@ export function JournalList({ initialEntries, tags }: JournalListProps) {
                     })()}
 
                   {/* Title */}
-                  <h2 className="text-4xl md:text-5xl font-bold text-[var(--foreground)] leading-tight mb-4">
+                  <h2 className="text-2xl md:text-5xl font-bold text-[var(--foreground)] leading-tight mb-4">
                     {currentEntry!.title}
                   </h2>
 
@@ -287,7 +287,7 @@ export function JournalList({ initialEntries, tags }: JournalListProps) {
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-[var(--border)] px-8 md:px-12 py-4 flex justify-between items-center bg-[var(--muted)]/30">
+                <div className="border-t border-[var(--border)] px-5 md:px-12 py-4 flex justify-between items-center bg-[var(--muted)]/30 flex-wrap gap-2">
                   <p className="text-xs text-[var(--muted-foreground)]">
                     Atualizado em{" "}
                     {format(

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,10 +58,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--primary)] mb-4">
-            <BookHeart className="w-8 h-8 text-[var(--primary-foreground)]" />
+          <div className="flex justify-center mb-4">
+            <Image src="/images/cozyberry-2.png" alt="CozyBerry" width={64} height={64} className="w-16 h-16" />
           </div>
-          <h1 className="text-3xl font-bold text-[var(--foreground)]">CozyBerry</h1>
           <p className="text-[var(--muted-foreground)] mt-1">Your cozy journaling space</p>
         </div>
 

@@ -8,13 +8,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { getMood } from "@/lib/utils";
 import { BookOpen, Flame, PenLine, Calendar, Hash } from "lucide-react";
-
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
-}
+import { Greeting } from "@/components/dashboard/greeting";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -28,15 +22,8 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Greeting Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-[var(--foreground)]">
-            {getGreeting()}, {firstName} 🌸
-          </h1>
-          <p className="text-[var(--muted-foreground)] mt-1">
-            {format(new Date(), "EEEE, MMMM d, yyyy")}
-          </p>
-        </div>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <Greeting firstName={firstName} />
         <Button asChild>
           <Link href="/journal/new">
             <PenLine className="w-4 h-4" />

@@ -95,15 +95,15 @@ export function EntryForm({ tags, entry }: EntryFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button asChild variant="ghost" size="sm">
+      <div className="flex items-center justify-between gap-2">
+        <Button asChild variant="ghost" size="sm" className="shrink-0">
           <Link href={entry ? `/journal/${entry.id}` : "/journal"}>
             <ArrowLeft className="w-4 h-4" />
-            Back
+            <span className="hidden sm:inline">Back</span>
           </Link>
         </Button>
-        <h1 className="text-xl font-bold">{entry ? "Edit Entry" : "New Entry"}</h1>
-        <Button type="submit" disabled={saving}>
+        <h1 className="text-lg md:text-xl font-bold truncate">{entry ? "Edit Entry" : "New Entry"}</h1>
+        <Button type="submit" disabled={saving} className="shrink-0">
           <Save className="w-4 h-4" />
           {saving ? "Saving..." : "Save"}
         </Button>

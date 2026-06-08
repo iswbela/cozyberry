@@ -10,12 +10,13 @@ const ThemeContext = createContext<{
 }>({ theme: "light", setTheme: () => {} });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("cozyberry-theme") as Theme | null;
-    if (stored) setThemeState(stored);
-  }, []);
+  // Initialize from the class the inline script already applied — avoids mismatch
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof document !== "undefined") {
+      return document.documentElement.classList.contains("dark") ? "dark" : "light";
+    }
+    return "light";
+  });
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
@@ -26,14 +27,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.classList.remove("dark");
     }
   };
-
-  useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [theme]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
