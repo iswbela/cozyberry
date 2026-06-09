@@ -29,6 +29,65 @@ interface EntryFormProps {
   entry?: JournalEntryWithTags;
 }
 
+// Converts yyyy-MM-dd → DD/MM/YYYY for display
+function toDisplay(v: string) {
+  if (!v) return "";
+  const [y, m, d] = v.split("-");
+  if (!y || !m || !d) return v;
+  return `${d}/${m}/${y}`;
+}
+
+// Converts DD/MM/YYYY → yyyy-MM-dd for storage
+function toInternal(display: string) {
+  const parts = display.replace(/\D/g, "");
+  if (parts.length < 8) return "";
+  const d = parts.slice(0, 2);
+  const m = parts.slice(2, 4);
+  const y = parts.slice(4, 8);
+  return `${y}-${m}-${d}`;
+}
+
+function DateInputDMY({
+  value,
+  onChange,
+  placeholder = "DD/MM/AAAA",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  const [display, setDisplay] = useState(() => toDisplay(value));
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value.replace(/\D/g, "");
+    if (raw.length > 8) raw = raw.slice(0, 8);
+
+    let formatted = raw;
+    if (raw.length > 4) {
+      formatted = raw.slice(0, 2) + "/" + raw.slice(2, 4) + "/" + raw.slice(4);
+    } else if (raw.length > 2) {
+      formatted = raw.slice(0, 2) + "/" + raw.slice(2);
+    }
+
+    setDisplay(formatted);
+
+    if (raw.length === 8) {
+      const internal = toInternal(formatted);
+      onChange(internal);
+    }
+  };
+
+  return (
+    <Input
+      value={display}
+      onChange={handleChange}
+      placeholder={placeholder}
+      maxLength={10}
+      inputMode="numeric"
+    />
+  );
+}
+
 export function EntryForm({ tags, entry }: EntryFormProps) {
   const router = useRouter();
   const { t } = useLang();
@@ -38,13 +97,15 @@ export function EntryForm({ tags, entry }: EntryFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       title: entry?.title ?? "",
       entryDate: entry ? format(new Date(entry.entryDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
     },
   });
+
+  const entryDate = watch("entryDate");
 
   const toggleTag = (id: string) =>
     setSelectedTags((prev) => prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]);
@@ -94,7 +155,10 @@ export function EntryForm({ tags, entry }: EntryFormProps) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="entryDate">{t.journal.dateLabel}</Label>
-          <Input id="entryDate" type="date" {...register("entryDate")} />
+          <DateInputDMY
+            value={entryDate}
+            onChange={(v) => setValue("entryDate", v, { shouldValidate: true })}
+          />
           {errors.entryDate && <p className="text-xs text-red-500">{errors.entryDate.message}</p>}
         </div>
       </div>

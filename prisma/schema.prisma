@@ -147,6 +147,7 @@ model Reminder {
   title       String
   description String?
   eventDate   DateTime
+  eventTime   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

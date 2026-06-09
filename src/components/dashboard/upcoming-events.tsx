@@ -12,9 +12,23 @@ export function UpcomingEvents({ reminders }: { reminders: Reminder[] }) {
   const { t, lang } = useLang();
   const locale = lang === "pt" ? ptBR : enUS;
 
-  const getDaysLabel = (date: Date) => {
+  const getDaysLabel = (date: Date, time?: string | null) => {
+    const now = new Date();
+    if (time) {
+      const [h, m] = time.split(":").map(Number);
+      const eventDateTime = new Date(date);
+      eventDateTime.setHours(h, m, 0, 0);
+      const diffMs = eventDateTime.getTime() - now.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      if (diffMs > 0 && diffHours < 24) {
+        const hrs = Math.floor(diffHours);
+        const mins = Math.round((diffHours - hrs) * 60);
+        if (hrs === 0) return `Em ${mins}min`;
+        return t.reminders.inHours.replace("{h}", mins > 0 ? `${hrs}h${mins}min` : String(hrs));
+      }
+    }
     if (isToday(date)) return t.reminders.today;
-    const days = differenceInDays(date, new Date());
+    const days = differenceInDays(date, now);
     if (days === 1) return t.reminders.tomorrow;
     return t.reminders.inDays.replace("{n}", String(days));
   };
@@ -60,9 +74,14 @@ export function UpcomingEvents({ reminders }: { reminders: Reminder[] }) {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{r.title}</p>
+                <p className="text-sm font-medium truncate">
+                  {r.title}
+                  {r.eventTime && (
+                    <span className="font-normal text-[var(--muted-foreground)]"> - {r.eventTime}</span>
+                  )}
+                </p>
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  {getDaysLabel(new Date(r.eventDate))}
+                  {getDaysLabel(new Date(r.eventDate), r.eventTime)}
                 </p>
               </div>
             </div>

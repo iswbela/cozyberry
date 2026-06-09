@@ -24,12 +24,14 @@ export function RemindersView({ initialReminders }: { initialReminders: Reminder
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
+  const [eventTime, setEventTime] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -40,14 +42,19 @@ export function RemindersView({ initialReminders }: { initialReminders: Reminder
     }
     setLoading(true);
     setError(null);
-    const result = await createReminder({ title: title.trim(), description: description.trim() || undefined, eventDate });
+    const result = await createReminder({
+      title: title.trim(),
+      description: description.trim() || undefined,
+      eventDate,
+      eventTime: eventTime || undefined,
+    });
     if (result.success && result.reminder) {
       setReminders((prev) =>
         [...prev, result.reminder!].sort(
           (a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
         )
       );
-      setTitle(""); setDescription(""); setEventDate(""); setShowForm(false);
+      setTitle(""); setDescription(""); setEventDate(""); setEventTime(""); setShowForm(false);
       router.refresh();
     } else if (result.error) {
       setError(result.error);
@@ -60,6 +67,7 @@ export function RemindersView({ initialReminders }: { initialReminders: Reminder
     setEditTitle(r.title);
     setEditDesc(r.description ?? "");
     setEditDate(format(new Date(r.eventDate), "yyyy-MM-dd"));
+    setEditTime(r.eventTime ?? "");
   };
 
   const handleUpdate = async (id: string) => {
@@ -67,6 +75,7 @@ export function RemindersView({ initialReminders }: { initialReminders: Reminder
       title: editTitle.trim(),
       description: editDesc.trim() || undefined,
       eventDate: editDate,
+      eventTime: editTime || null,
     });
     if (result.success && result.reminder) {
       setReminders((prev) =>
@@ -85,12 +94,30 @@ export function RemindersView({ initialReminders }: { initialReminders: Reminder
     router.refresh();
   };
 
-  const getDaysLabel = (date: Date) => {
+  const getDaysLabel = (date: Date, time?: string | null) => {
+    const now = new Date();
+
+    if (time) {
+      const [h, m] = time.split(":").map(Number);
+      const eventDateTime = new Date(date);
+      eventDateTime.setHours(h, m, 0, 0);
+      const diffMs = eventDateTime.getTime() - now.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      if (diffMs > 0 && diffHours < 24) {
+        const hrs = Math.floor(diffHours);
+        const mins = Math.round((diffHours - hrs) * 60);
+        if (hrs === 0) return `Em ${mins}min`;
+        return mins > 0
+          ? t.reminders.inHours.replace("{h}", `${hrs}h${mins}min`)
+          : t.reminders.inHours.replace("{h}", String(hrs));
+      }
+    }
+
     if (isToday(date)) return t.reminders.today;
     if (isPast(date)) return t.reminders.past;
-    const days = differenceInDays(date, new Date());
+    const days = differenceInDays(date, now);
     if (days === 1) return t.reminders.tomorrow;
-    return `${t.reminders.inDays.replace("{n}", String(days))}`;
+    return t.reminders.inDays.replace("{n}", String(days));
   };
 
   const upcoming = reminders.filter((r) => !isPast(new Date(r.eventDate)) || isToday(new Date(r.eventDate)));
@@ -109,8 +136,8 @@ export function RemindersView({ initialReminders }: { initialReminders: Reminder
       {showForm && (
         <Card className="border-2 border-dashed border-[var(--border)]">
           <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2 sm:col-span-1">
                 <Label>{t.reminders.titleLabel}</Label>
                 <Input
                   value={title}
@@ -126,6 +153,14 @@ export function RemindersView({ initialReminders }: { initialReminders: Reminder
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}
                   min={today}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t.reminders.timeLabel}</Label>
+                <Input
+                  type="time"
+                  value={eventTime}
+                  onChange={(e) => setEventTime(e.target.value)}
                 />
               </div>
             </div>
@@ -169,14 +204,16 @@ export function RemindersView({ initialReminders }: { initialReminders: Reminder
                   key={r.id}
                   reminder={r}
                   locale={locale}
-                  daysLabel={getDaysLabel(new Date(r.eventDate))}
+                  daysLabel={getDaysLabel(new Date(r.eventDate), r.eventTime)}
                   isEditing={editingId === r.id}
                   editTitle={editTitle}
                   editDesc={editDesc}
                   editDate={editDate}
+                  editTime={editTime}
                   onEditTitle={setEditTitle}
                   onEditDesc={setEditDesc}
                   onEditDate={setEditDate}
+                  onEditTime={setEditTime}
                   onStartEdit={() => startEdit(r)}
                   onSaveEdit={() => handleUpdate(r.id)}
                   onCancelEdit={() => setEditingId(null)}
@@ -198,14 +235,16 @@ export function RemindersView({ initialReminders }: { initialReminders: Reminder
                     key={r.id}
                     reminder={r}
                     locale={locale}
-                    daysLabel={getDaysLabel(new Date(r.eventDate))}
+                    daysLabel={getDaysLabel(new Date(r.eventDate), r.eventTime)}
                     isEditing={editingId === r.id}
                     editTitle={editTitle}
                     editDesc={editDesc}
                     editDate={editDate}
+                    editTime={editTime}
                     onEditTitle={setEditTitle}
                     onEditDesc={setEditDesc}
                     onEditDate={setEditDate}
+                    onEditTime={setEditTime}
                     onStartEdit={() => startEdit(r)}
                     onSaveEdit={() => handleUpdate(r.id)}
                     onCancelEdit={() => setEditingId(null)}
@@ -230,9 +269,11 @@ function ReminderCard({
   editTitle,
   editDesc,
   editDate,
+  editTime,
   onEditTitle,
   onEditDesc,
   onEditDate,
+  onEditTime,
   onStartEdit,
   onSaveEdit,
   onCancelEdit,
@@ -246,9 +287,11 @@ function ReminderCard({
   editTitle: string;
   editDesc: string;
   editDate: string;
+  editTime: string;
   onEditTitle: (v: string) => void;
   onEditDesc: (v: string) => void;
   onEditDate: (v: string) => void;
+  onEditTime: (v: string) => void;
   onStartEdit: () => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
@@ -260,9 +303,10 @@ function ReminderCard({
     return (
       <Card className="border-2 border-[var(--accent)]">
         <CardContent className="pt-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Input value={editTitle} onChange={(e) => onEditTitle(e.target.value)} autoFocus />
             <Input type="date" value={editDate} onChange={(e) => onEditDate(e.target.value)} />
+            <Input type="time" value={editTime} onChange={(e) => onEditTime(e.target.value)} placeholder={t.reminders.timeLabel} />
           </div>
           <Textarea
             value={editDesc}
@@ -297,7 +341,12 @@ function ReminderCard({
             <CalendarDays className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold truncate">{reminder.title}</p>
+            <p className="font-semibold truncate">
+              {reminder.title}
+              {reminder.eventTime && (
+                <span className="font-normal text-[var(--muted-foreground)]"> - {reminder.eventTime}</span>
+              )}
+            </p>
             <p className="text-sm text-[var(--muted-foreground)]">
               {format(new Date(reminder.eventDate), "dd 'de' MMMM 'de' yyyy", { locale })} — <span className="font-medium">{daysLabel}</span>
             </p>

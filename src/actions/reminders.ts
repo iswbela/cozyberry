@@ -26,6 +26,7 @@ export async function createReminder(data: {
   title: string;
   description?: string;
   eventDate: string;
+  eventTime?: string;
 }) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
@@ -34,6 +35,7 @@ export async function createReminder(data: {
     title: z.string().min(1).max(200),
     description: z.string().optional(),
     eventDate: z.string().min(1),
+    eventTime: z.string().optional(),
   });
   const parsed = schema.safeParse(data);
   if (!parsed.success) return { error: "Invalid fields" };
@@ -48,6 +50,7 @@ export async function createReminder(data: {
       title: parsed.data.title,
       description: parsed.data.description,
       eventDate,
+      eventTime: parsed.data.eventTime || null,
     },
   });
 
@@ -58,7 +61,7 @@ export async function createReminder(data: {
 
 export async function updateReminder(
   id: string,
-  data: { title?: string; description?: string; eventDate?: string }
+  data: { title?: string; description?: string; eventDate?: string; eventTime?: string | null }
 ) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
@@ -77,6 +80,7 @@ export async function updateReminder(
         const [y, mo, d] = data.eventDate!.split("-").map(Number);
         return { eventDate: new Date(y, mo - 1, d, 12, 0, 0) };
       })()),
+      ...("eventTime" in data && { eventTime: data.eventTime ?? null }),
     },
   });
 
