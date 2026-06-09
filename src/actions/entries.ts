@@ -26,12 +26,11 @@ export async function createEntry(data: {
   const parsed = EntrySchema.safeParse(data);
   if (!parsed.success) return { error: "Invalid fields" };
 
-  // One entry per day
-  const date = new Date(parsed.data.entryDate);
-  const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(date);
-  dayEnd.setHours(23, 59, 59, 999);
+  // One entry per day — parse as local date (avoid UTC-offset shifting)
+  const [y, mo, d] = parsed.data.entryDate.split("-").map(Number);
+  const date = new Date(y, mo - 1, d, 12, 0, 0);
+  const dayStart = new Date(y, mo - 1, d, 0, 0, 0, 0);
+  const dayEnd = new Date(y, mo - 1, d, 23, 59, 59, 999);
 
   const existing = await prisma.journalEntry.findFirst({
     where: {
@@ -47,7 +46,7 @@ export async function createEntry(data: {
       title: parsed.data.title,
       content: parsed.data.content,
       mood: parsed.data.mood,
-      entryDate: new Date(parsed.data.entryDate),
+      entryDate: date,
       tags: parsed.data.tagIds?.length
         ? { create: parsed.data.tagIds.map((tagId) => ({ tagId })) }
         : undefined,
@@ -89,7 +88,10 @@ export async function updateEntry(
       ...(data.title && { title: data.title }),
       ...(data.content && { content: data.content }),
       ...(data.mood !== undefined && { mood: data.mood }),
-      ...(data.entryDate && { entryDate: new Date(data.entryDate) }),
+      ...(data.entryDate && (() => {
+        const [ey, em, ed] = data.entryDate!.split("-").map(Number);
+        return { entryDate: new Date(ey, em - 1, ed, 12, 0, 0) };
+      })()),
       ...(data.tagIds?.length && {
         tags: { create: data.tagIds.map((tagId) => ({ tagId })) },
       }),

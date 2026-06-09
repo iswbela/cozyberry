@@ -10,13 +10,16 @@ const ThemeContext = createContext<{
 }>({ theme: "light", setTheme: () => {} });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Initialize from the class the inline script already applied — avoids mismatch
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof document !== "undefined") {
-      return document.documentElement.classList.contains("dark") ? "dark" : "light";
-    }
-    return "light";
-  });
+  // Always start with "light" on both server and client — useEffect syncs after hydration
+  const [theme, setThemeState] = useState<Theme>("light");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("cozyberry-theme") as Theme | null;
+    const resolved = stored ?? (document.documentElement.classList.contains("dark") ? "dark" : "light");
+    setThemeState(resolved);
+    if (resolved === "dark") document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
+  }, []);
 
   const setTheme = (t: Theme) => {
     setThemeState(t);

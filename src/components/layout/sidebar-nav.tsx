@@ -21,12 +21,16 @@ import {
   Sun,
   Moon,
   X,
+  NotebookPen,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ICONS = [
   { href: "/dashboard", icon: LayoutDashboard, key: "dashboard" },
   { href: "/journal",   icon: BookOpen,        key: "journal" },
+  { href: "/notebooks", icon: NotebookPen,     key: "notebooks" },
+  { href: "/reminders", icon: Bell,            key: "reminders" },
   { href: "/calendar",  icon: Calendar,        key: "calendar" },
   { href: "/timeline",  icon: Clock,           key: "timeline" },
   { href: "/search",    icon: Search,          key: "search" },
@@ -112,7 +116,6 @@ export function SidebarNav({ user, isOpen = false, onClose }: SidebarNavProps) {
 
         {/* Language Toggle */}
         <div className="flex items-center gap-2 px-3 py-2">
-          <span className="text-xs text-[var(--muted-foreground)] mr-1">🌐</span>
           <button
             onClick={() => setLang("pt")}
             className={cn(
