@@ -12,11 +12,12 @@ import { UpcomingEvents } from "@/components/dashboard/upcoming-events";
 
 export default async function DashboardPage() {
   const session = await auth();
-  const [{ entries }, stats, { reminders }] = await Promise.all([
+  const [{ entries }, stats, remindersResult] = await Promise.all([
     getEntries({ limit: 5 }),
     getStats(),
-    getReminders({ upcoming: true }),
+    getReminders({ upcoming: true }).catch(() => ({ reminders: [] })),
   ]);
+  const reminders = remindersResult.reminders ?? [];
 
   const firstName = session?.user?.name?.split(" ")[0] ?? "friend";
 
@@ -44,7 +45,7 @@ export default async function DashboardPage() {
           <RecentEntries entries={entries} />
         </div>
         <div>
-          <UpcomingEvents reminders={reminders ?? []} />
+          <UpcomingEvents reminders={reminders} />
         </div>
       </div>
     </div>
