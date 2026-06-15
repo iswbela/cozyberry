@@ -98,6 +98,9 @@ export function NotebookDetail({
   const [primaryId, setPrimaryId] = useState<string | null>(initialNotes[0]?.id ?? null);
   const [secondaryId, setSecondaryId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [mobileView, setMobileView] = useState<"list" | "editor">(
+    initialNotes[0] ? "editor" : "list"
+  );
   const [newTitle, setNewTitle] = useState("");
   // Map of noteId → save timer, so primary and secondary save independently
   const saveTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -133,6 +136,7 @@ export function NotebookDetail({
     if (result.success && result.note) {
       setNotes((prev) => [result.note!, ...prev]);
       setPrimaryId(result.note!.id);
+      setMobileView("editor");
       setNewTitle("");
       router.refresh();
     }
@@ -172,9 +176,10 @@ export function NotebookDetail({
     if (id === secondaryId) {
       setSecondaryId(primaryId);
       setPrimaryId(id);
-      return;
+    } else {
+      setPrimaryId(id);
     }
-    setPrimaryId(id);
+    setMobileView("editor");
   };
 
   // Open note alongside (split button)
@@ -206,7 +211,7 @@ export function NotebookDetail({
 
       <div className="flex gap-4 flex-1 min-h-0 overflow-hidden">
         {/* ── Sidebar ── */}
-        <aside className="w-52 shrink-0 flex flex-col gap-1.5 overflow-y-auto">
+        <aside className={`w-full md:w-52 shrink-0 flex-col gap-1.5 overflow-y-auto ${mobileView === "list" ? "flex" : "hidden md:flex"}`}>
           {/* New note */}
           <div className="flex gap-1.5 mb-1">
             <Input
@@ -296,9 +301,18 @@ export function NotebookDetail({
         </aside>
 
         {/* ── Editor area ── */}
-        <div className={`flex-1 min-w-0 overflow-hidden ${splitActive ? "flex gap-4" : "flex flex-col gap-3"}`}>
+        <div className={`flex-1 min-w-0 overflow-hidden ${splitActive ? "flex gap-4" : "flex flex-col gap-3"} ${mobileView === "editor" ? "flex" : "hidden md:flex"}`}>
           {primaryNote ? (
             <>
+              {/* Mobile back button */}
+              <button
+                onClick={() => setMobileView("list")}
+                className="md:hidden flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] mb-1 shrink-0"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {t.notebooks.notes}
+              </button>
+
               {/* Primary pane */}
               <div className={`flex flex-col gap-3 min-w-0 overflow-hidden ${splitActive ? "flex-1 border-r border-[var(--border)] pr-4" : "flex-1"}`}>
                 <NotePane
