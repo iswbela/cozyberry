@@ -1,30 +1,26 @@
-import { getEntries } from "@/actions/entries";
-import { getReminders } from "@/actions/reminders";
 import { getWeightEntries, getGymSessions, getCryEntries } from "@/actions/health";
-import { CalendarView } from "@/components/calendar/calendar-view";
+import { getEntries } from "@/actions/entries";
+import { HealthView } from "@/components/health/health-view";
 
-export default async function CalendarPage() {
+export default async function HealthPage() {
   const [
-    { entries },
-    { reminders },
     { entries: weightEntries },
     { sessions: gymSessions },
     { entries: cryEntries },
+    { entries: journalEntries },
   ] = await Promise.all([
-    getEntries({ limit: 500 }),
-    getReminders(),
     getWeightEntries(),
     getGymSessions(),
     getCryEntries(),
+    getEntries({ limit: 500 }),
   ]);
 
   return (
-    <CalendarView
-      entries={entries}
-      reminders={reminders ?? []}
+    <HealthView
       weightEntries={weightEntries}
       gymSessions={gymSessions ?? []}
       cryEntries={cryEntries}
+      journalEntries={journalEntries}
     />
   );
 }

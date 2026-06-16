@@ -4,6 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { encrypt, decrypt } from "@/lib/encrypt";
+import type { JournalEntry, Tag } from "@prisma/client";
+
+type EntryWithTags = JournalEntry & { tags: { tag: Tag }[] };
+
+function decryptEntry<T extends EntryWithTags>(entry: T): T {
+  return { ...entry, title: decrypt(entry.title), content: decrypt(entry.content) };
+}
 
 const EntrySchema = z.object({
   title: z.string().min(1).max(200),
@@ -26,25 +34,21 @@ export async function createEntry(data: {
   const parsed = EntrySchema.safeParse(data);
   if (!parsed.success) return { error: "Invalid fields" };
 
-  // One entry per day — parse as local date (avoid UTC-offset shifting)
   const [y, mo, d] = parsed.data.entryDate.split("-").map(Number);
   const date = new Date(y, mo - 1, d, 12, 0, 0);
   const dayStart = new Date(y, mo - 1, d, 0, 0, 0, 0);
   const dayEnd = new Date(y, mo - 1, d, 23, 59, 59, 999);
 
   const existing = await prisma.journalEntry.findFirst({
-    where: {
-      userId: session.user.id,
-      entryDate: { gte: dayStart, lte: dayEnd },
-    },
+    where: { userId: session.user.id, entryDate: { gte: dayStart, lte: dayEnd } },
   });
   if (existing) return { error: "day_exists", existingId: existing.id };
 
   const entry = await prisma.journalEntry.create({
     data: {
       userId: session.user.id,
-      title: parsed.data.title,
-      content: parsed.data.content,
+      title: encrypt(parsed.data.title),
+      content: encrypt(parsed.data.content),
       mood: parsed.data.mood,
       entryDate: date,
       tags: parsed.data.tagIds?.length
@@ -57,25 +61,17 @@ export async function createEntry(data: {
   revalidatePath("/dashboard");
   revalidatePath("/journal");
   revalidatePath("/calendar");
-  return { success: true, entry };
+  return { success: true, entry: decryptEntry(entry) };
 }
 
 export async function updateEntry(
   id: string,
-  data: {
-    title?: string;
-    content?: string;
-    mood?: string;
-    entryDate?: string;
-    tagIds?: string[];
-  }
+  data: { title?: string; content?: string; mood?: string; entryDate?: string; tagIds?: string[] }
 ) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  const existing = await prisma.journalEntry.findFirst({
-    where: { id, userId: session.user.id },
-  });
+  const existing = await prisma.journalEntry.findFirst({ where: { id, userId: session.user.id } });
   if (!existing) return { error: "Not found" };
 
   if (data.tagIds !== undefined) {
@@ -85,8 +81,8 @@ export async function updateEntry(
   const entry = await prisma.journalEntry.update({
     where: { id },
     data: {
-      ...(data.title && { title: data.title }),
-      ...(data.content && { content: data.content }),
+      ...(data.title && { title: encrypt(data.title) }),
+      ...(data.content && { content: encrypt(data.content) }),
       ...(data.mood !== undefined && { mood: data.mood }),
       ...(data.entryDate && (() => {
         const [ey, em, ed] = data.entryDate!.split("-").map(Number);
@@ -102,16 +98,14 @@ export async function updateEntry(
   revalidatePath("/dashboard");
   revalidatePath("/journal");
   revalidatePath(`/journal/${id}`);
-  return { success: true, entry };
+  return { success: true, entry: decryptEntry(entry) };
 }
 
 export async function deleteEntry(id: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  await prisma.journalEntry.delete({
-    where: { id, userId: session.user.id },
-  });
+  await prisma.journalEntry.delete({ where: { id, userId: session.user.id } });
 
   revalidatePath("/dashboard");
   revalidatePath("/journal");
@@ -129,23 +123,30 @@ export async function getEntries(params?: {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized", entries: [] };
 
-  const entries = await prisma.journalEntry.findMany({
+  const raw = await prisma.journalEntry.findMany({
     where: {
       userId: session.user.id,
-      ...(params?.search && {
-        OR: [
-          { title: { contains: params.search, mode: "insensitive" } },
-          { content: { contains: params.search, mode: "insensitive" } },
-        ],
-      }),
       ...(params?.tagId && { tags: { some: { tagId: params.tagId } } }),
       ...(params?.mood && { mood: params.mood }),
     },
     include: { tags: { include: { tag: true } } },
     orderBy: { entryDate: "desc" },
-    take: params?.limit ?? 50,
-    skip: params?.offset ?? 0,
   });
+
+  let entries = raw.map(decryptEntry);
+
+  if (params?.search) {
+    const q = params.search.toLowerCase();
+    entries = entries.filter(
+      (e) =>
+        e.title.toLowerCase().includes(q) ||
+        e.content.replace(/<[^>]*>/g, "").toLowerCase().includes(q)
+    );
+  }
+
+  const offset = params?.offset ?? 0;
+  const limit = params?.limit ?? 50;
+  entries = entries.slice(offset, offset + limit);
 
   return { entries };
 }
@@ -154,8 +155,10 @@ export async function getEntry(id: string) {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  return prisma.journalEntry.findFirst({
+  const entry = await prisma.journalEntry.findFirst({
     where: { id, userId: session.user.id },
     include: { tags: { include: { tag: true } } },
   });
+
+  return entry ? decryptEntry(entry) : null;
 }

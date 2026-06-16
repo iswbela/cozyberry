@@ -23,6 +23,7 @@ import {
   X,
   NotebookPen,
   Bell,
+  Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,7 @@ const NAV_ICONS = [
   { href: "/reminders", icon: Bell,            key: "reminders" },
   { href: "/calendar",  icon: Calendar,        key: "calendar" },
   { href: "/timeline",  icon: Clock,           key: "timeline" },
+  { href: "/health",    icon: Heart,           key: "health" },
   { href: "/search",    icon: Search,          key: "search" },
   { href: "/tags",      icon: Tag,             key: "tags" },
   { href: "/stats",     icon: BarChart2,       key: "stats" },
@@ -157,6 +159,7 @@ export function SidebarNav({ user, isOpen = false, onClose }: SidebarNavProps) {
             title={t.nav.signOut}
           >
             <LogOut className="w-4 h-4" />
+
           </button>
         </div>
       </div>

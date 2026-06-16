@@ -26,6 +26,9 @@ model User {
   notebooks      Notebook[]
   notes          Note[]
   reminders      Reminder[]
+  weightEntries  WeightEntry[]
+  gymSessions    GymSession[]
+  cryEntries     CryEntry[]
 }
 
 model Account {
@@ -74,8 +77,9 @@ model JournalEntry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tags JournalEntryTag[]
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags       JournalEntryTag[]
+  cryEntries CryEntry[]
 }
 
 model Tag {
@@ -152,4 +156,49 @@ model Reminder {
   updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WeightEntry {
+  id       String   @id @default(cuid())
+  userId   String
+  date     DateTime
+  weightKg Float
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model GymSession {
+  id            String   @id @default(cuid())
+  userId        String
+  date          DateTime
+  durationMin   Int?
+  focus         String?
+  energyBefore  Int?
+  energyAfter   Int?
+  perceivedLoad String?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model CryEntry {
+  id             String   @id @default(cuid())
+  userId         String
+  date           DateTime
+  times          Int?
+  durationMin    Int?
+  reason         String?
+  journalEntryId String?
+  createdAt      DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  journalEntry JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, date])
 }
